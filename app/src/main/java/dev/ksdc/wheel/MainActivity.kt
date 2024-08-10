@@ -18,7 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,7 +27,7 @@ import com.commandiron.spin_wheel_compose.SpinWheel
 import com.commandiron.spin_wheel_compose.SpinWheelDefaults
 import com.commandiron.spin_wheel_compose.state.rememberSpinWheelState
 import dev.ksdc.wheel.ui.theme.WheelTheme
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,9 +35,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WheelTheme {
-                val names by remember {
-                    mutableStateOf(
-                        TODO()
+                val names = remember {
+                    mutableListOf(
+                        "김규하", "김유진", "류현정", "김세환", "권하진", "이석훈", "박현준", "정지원", "성시현", "최지환",
+                        "김진현", "김성연", "김대현", "임나현", "안요한", "이상준", "김현지", "남우석", "황동현", "장민호",
+                        "권가령", "김은빈", "이상훈", "이서영", "김도원", "김승원", "홍예훈", "경민서", "황수연", "정아영",
+                        "이용진", "이규리", "유나연", "김어진", "박예빈", "김수연", "박의엘", "최승우", "박현아", "박태준",
+                        "육기준", "이지훈", "한승완", "이유호", "김샛별", "고경석", "이현규", "양병건", "유지우", "최강인",
+                        "안용우", "박승덕", "오지훈", "김수현", "유찬홍", "변예현", "원도윤", "이상휘", "박영호", "안병준",
+                        "김대운", "김강현", "정선영", "김태윤", "신승빈", "소지연", "성연우", "권강빈", "방준호", "하원",
+                        "이지훈", "전건우", "윤유섭", "최형우", "심수연",
                     )
                 }
 
@@ -46,27 +52,21 @@ class MainActivity : ComponentActivity() {
                     mutableIntStateOf(names.size)
                 }
 
-                val (currentSelection, onCurrentSelectionChange) = remember {
-                    mutableStateOf<String?>(
-                        null
-                    )
+                val (currentSelectionIndex, onCurrentSelectionIndexChange) = remember {
+                    mutableStateOf<Int?>(null)
                 }
-                val (currentSelectedIndex, onCurrentSelectedIndexChange) = remember {
-                    mutableStateOf<Int?>(
-                        null,
-                    )
-                }
+
 
                 val spinWheelState = rememberSpinWheelState(
                     pieCount = size,
+                    durationMillis = 6000,
                 )
-                val scope = rememberCoroutineScope()
+
                 fun onWheelSpin() {
-                    onCurrentSelectionChange(null)
-                    scope.launch {
+                    onCurrentSelectionIndexChange(null)
+                    runBlocking {
                         spinWheelState.spin { index ->
-                            onCurrentSelectionChange(names[index])
-                            onCurrentSelectedIndexChange(index)
+                            onCurrentSelectionIndexChange(index)
                         }
                     }
                 }
@@ -174,33 +174,36 @@ class MainActivity : ComponentActivity() {
                                     Color(0xFF0cb0a9),
                                     Color(0xFF118ab2),
                                     Color(0xFF073b4c),
-
-                                    )
+                                ),
                             ),
                             dimensions = SpinWheelDefaults.spinWheelDimensions(
-                                spinWheelSize = 550.dp,
-                                selectorWidth = 50.dp,
+                                spinWheelSize = 500.dp,
+                                selectorWidth = 20.dp,
                             ),
                             onClick = { onWheelSpin() },
                         ) { pieIndex ->
+                            val name = names[pieIndex]
+                            val style =
+                                if (name.contains("추첨됨")) MaterialTheme.typography.labelSmall.copy(
+                                    color = Color.Green
+                                ) else MaterialTheme.typography.labelSmall
                             Text(
-                                text = names[pieIndex],
-                                style = MaterialTheme.typography.labelSmall,
+                                text = name,
+                                style = style,
                             )
                         }
                         AnimatedVisibility(
-                            visible = currentSelection != null,
+                            visible = currentSelectionIndex != null,
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                if (currentSelection != null)
-                                    Text(
-                                        text = currentSelection,
-                                        style = MaterialTheme.typography.displayLarge.copy(
-                                            fontWeight = FontWeight.Bold,
-                                        ),
-                                    )
+                                if (currentSelectionIndex != null) Text(
+                                    text = names[currentSelectionIndex],
+                                    style = MaterialTheme.typography.displayLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                    ),
+                                )
                                 Text(
                                     text = "축하드립니다!!",
                                     style = MaterialTheme.typography.titleLarge,
@@ -211,9 +214,9 @@ class MainActivity : ComponentActivity() {
                         FilledTonalButton(
                             onClick = {
                                 onWheelSpin()
-                                if (currentSelectedIndex != null) {
-                                    names.removeAt(currentSelectedIndex)
-                                    onCurrentSelectedIndexChange(null)
+                                if (currentSelectionIndex != null) {
+                                    names[currentSelectionIndex] =
+                                        "(추첨됨)${names[currentSelectionIndex]}"
                                 }
                             },
                             modifier = Modifier
@@ -224,7 +227,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Text(
                                 text = "얍!",
-                                modifier = Modifier.padding(all = 16.dp),
+                                modifier = Modifier.padding(all = 8.dp),
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                 ),
