@@ -14,11 +14,13 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,8 +31,8 @@ import com.commandiron.spin_wheel_compose.SpinWheelDefaults
 import com.commandiron.spin_wheel_compose.state.rememberSpinWheelState
 import dev.ksdc.wheel.ui.theme.WheelTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,8 +50,8 @@ class MainActivity : ComponentActivity() {
                     mutableIntStateOf(names.size)
                 }
 
-                val (currentSelectionIndex, onCurrentSelectionIndexChange) = remember {
-                    mutableStateOf<Int?>(null)
+                val (currentSelection, onCurrentSelectionChange) = remember {
+                    mutableStateOf<String?>(null)
                 }
 
 
@@ -60,10 +62,10 @@ class MainActivity : ComponentActivity() {
 
                 val scope = rememberCoroutineScope()
                 fun onWheelSpin() {
-                    onCurrentSelectionIndexChange(null)
-                    scope.launch(Dispatchers.Main ) {
+                    scope.launch(Dispatchers.Main) {
                         spinWheelState.spin { index ->
-                            onCurrentSelectionIndexChange(index)
+                            names[index] = "(추첨됨)${names[index]}"
+                            onCurrentSelectionChange(names[index])
                         }
                     }
                 }
@@ -80,6 +82,8 @@ class MainActivity : ComponentActivity() {
                         SpinWheel(
                             state = spinWheelState,
                             colors = SpinWheelDefaults.spinWheelColors(
+                                frameColor = Color.DarkGray,
+                                selectorColor = Color.Red,
                                 pieColors = listOf(
 
                                     Color(0xFFef476f),
@@ -182,39 +186,49 @@ class MainActivity : ComponentActivity() {
                             val name = names[pieIndex]
                             val style =
                                 if (name.contains("추첨됨")) MaterialTheme.typography.labelSmall.copy(
-                                    color = Color.Green
-                                ) else MaterialTheme.typography.labelSmall
+                                    color = Color.Green,
+                                ) else MaterialTheme.typography.labelSmall.copy(
+                                    color = Color.White,
+                                )
                             Text(
                                 text = name,
                                 style = style,
                             )
                         }
                         AnimatedVisibility(
-                            visible = currentSelectionIndex != null,
+                            visible = currentSelection != null,
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                if (currentSelectionIndex != null) Text(
-                                    text = names[currentSelectionIndex],
-                                    style = MaterialTheme.typography.displayLarge.copy(
-                                        fontWeight = FontWeight.Bold,
-                                    ),
-                                )
+                                if (currentSelection != null) {
+                                    Text(
+                                        text = currentSelection,
+                                        style = MaterialTheme.typography.displayLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                        ),
+                                    )
+                                }
                                 Text(
-                                    text = "축하드립니다!!",
+                                    text = "\uD83C\uDF89 축하드립니다 \uD83C\uDF89",
                                     style = MaterialTheme.typography.titleLarge,
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.weight(1f))
+                        var clickCount by remember { mutableStateOf(0) }
+                        var buttonEnabled by remember { mutableStateOf(true) }
+
+                        LaunchedEffect(key1 = clickCount) {
+                            delay(6000)
+                            buttonEnabled = true
+                        }
                         FilledTonalButton(
+                            enabled = buttonEnabled,
                             onClick = {
+                                buttonEnabled = false
+                                clickCount++
                                 onWheelSpin()
-                                if (currentSelectionIndex != null) {
-                                    names[currentSelectionIndex] =
-                                        "(추첨됨)${names[currentSelectionIndex]}"
-                                }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -222,8 +236,9 @@ class MainActivity : ComponentActivity() {
                                     all = 16.dp,
                                 ),
                         ) {
+
                             Text(
-                                text = "얍!",
+                                text = if (buttonEnabled) "얍!" else "두근두근..",
                                 modifier = Modifier.padding(all = 8.dp),
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
