@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,10 +38,12 @@ class MainActivity : ComponentActivity() {
             WheelTheme {
                 val names by remember {
                     mutableStateOf(
-                        listOf(
-                            "TODO"
-                        )
+                        TODO()
                     )
+                }
+
+                val size by remember(key1 = names.size) {
+                    mutableIntStateOf(names.size)
                 }
 
                 val (currentSelection, onCurrentSelectionChange) = remember {
@@ -48,9 +51,14 @@ class MainActivity : ComponentActivity() {
                         null
                     )
                 }
+                val (currentSelectedIndex, onCurrentSelectedIndexChange) = remember {
+                    mutableStateOf<Int?>(
+                        null,
+                    )
+                }
 
                 val spinWheelState = rememberSpinWheelState(
-                    pieCount = names.size,
+                    pieCount = size,
                 )
                 val scope = rememberCoroutineScope()
                 fun onWheelSpin() {
@@ -58,6 +66,7 @@ class MainActivity : ComponentActivity() {
                     scope.launch {
                         spinWheelState.spin { index ->
                             onCurrentSelectionChange(names[index])
+                            onCurrentSelectedIndexChange(index)
                         }
                     }
                 }
@@ -169,7 +178,7 @@ class MainActivity : ComponentActivity() {
                                     )
                             ),
                             dimensions = SpinWheelDefaults.spinWheelDimensions(
-                                spinWheelSize = 450.dp,
+                                spinWheelSize = 550.dp,
                                 selectorWidth = 50.dp,
                             ),
                             onClick = { onWheelSpin() },
@@ -200,7 +209,13 @@ class MainActivity : ComponentActivity() {
                         }
                         Spacer(modifier = Modifier.weight(1f))
                         FilledTonalButton(
-                            onClick = { onWheelSpin() },
+                            onClick = {
+                                onWheelSpin()
+                                if (currentSelectedIndex != null) {
+                                    names.removeAt(currentSelectedIndex)
+                                    onCurrentSelectedIndexChange(null)
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(
@@ -210,7 +225,7 @@ class MainActivity : ComponentActivity() {
                             Text(
                                 text = "얍!",
                                 modifier = Modifier.padding(all = 16.dp),
-                                style = MaterialTheme.typography.headlineLarge.copy(
+                                style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                 ),
                             )
