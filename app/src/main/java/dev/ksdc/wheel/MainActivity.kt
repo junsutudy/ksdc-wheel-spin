@@ -14,10 +14,13 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,6 +30,8 @@ import com.commandiron.spin_wheel_compose.SpinWheel
 import com.commandiron.spin_wheel_compose.SpinWheelDefaults
 import com.commandiron.spin_wheel_compose.state.rememberSpinWheelState
 import dev.ksdc.wheel.ui.theme.WheelTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -35,28 +40,31 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WheelTheme {
-                val names by remember {
-                    mutableStateOf(
-                        listOf(
-                            "TODO"
-                        )
+                val names = remember {
+                    mutableListOf<String>(
+
                     )
+                }
+
+                val size by remember(key1 = names.size) {
+                    mutableIntStateOf(names.size)
                 }
 
                 val (currentSelection, onCurrentSelectionChange) = remember {
-                    mutableStateOf<String?>(
-                        null
-                    )
+                    mutableStateOf<String?>(null)
                 }
 
+
                 val spinWheelState = rememberSpinWheelState(
-                    pieCount = names.size,
+                    pieCount = size,
+                    durationMillis = 6000,
                 )
+
                 val scope = rememberCoroutineScope()
                 fun onWheelSpin() {
-                    onCurrentSelectionChange(null)
-                    scope.launch {
+                    scope.launch(Dispatchers.Main) {
                         spinWheelState.spin { index ->
+                            names[index] = "(추첨됨)${names[index]}"
                             onCurrentSelectionChange(names[index])
                         }
                     }
@@ -74,6 +82,8 @@ class MainActivity : ComponentActivity() {
                         SpinWheel(
                             state = spinWheelState,
                             colors = SpinWheelDefaults.spinWheelColors(
+                                frameColor = Color.DarkGray,
+                                selectorColor = Color.Red,
                                 pieColors = listOf(
 
                                     Color(0xFFef476f),
@@ -165,18 +175,24 @@ class MainActivity : ComponentActivity() {
                                     Color(0xFF0cb0a9),
                                     Color(0xFF118ab2),
                                     Color(0xFF073b4c),
-
-                                    )
+                                ),
                             ),
                             dimensions = SpinWheelDefaults.spinWheelDimensions(
-                                spinWheelSize = 450.dp,
-                                selectorWidth = 50.dp,
+                                spinWheelSize = 500.dp,
+                                selectorWidth = 20.dp,
                             ),
                             onClick = { onWheelSpin() },
                         ) { pieIndex ->
+                            val name = names[pieIndex]
+                            val style =
+                                if (name.contains("추첨됨")) MaterialTheme.typography.labelSmall.copy(
+                                    color = Color.Green,
+                                ) else MaterialTheme.typography.labelSmall.copy(
+                                    color = Color.White,
+                                )
                             Text(
-                                text = names[pieIndex],
-                                style = MaterialTheme.typography.labelSmall,
+                                text = name,
+                                style = style,
                             )
                         }
                         AnimatedVisibility(
@@ -185,32 +201,46 @@ class MainActivity : ComponentActivity() {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
-                                if (currentSelection != null)
+                                if (currentSelection != null) {
                                     Text(
                                         text = currentSelection,
                                         style = MaterialTheme.typography.displayLarge.copy(
                                             fontWeight = FontWeight.Bold,
                                         ),
                                     )
+                                }
                                 Text(
-                                    text = "축하드립니다!!",
+                                    text = "\uD83C\uDF89 축하드립니다 \uD83C\uDF89",
                                     style = MaterialTheme.typography.titleLarge,
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.weight(1f))
+                        var clickCount by remember { mutableStateOf(0) }
+                        var buttonEnabled by remember { mutableStateOf(true) }
+
+                        LaunchedEffect(key1 = clickCount) {
+                            delay(6000)
+                            buttonEnabled = true
+                        }
                         FilledTonalButton(
-                            onClick = { onWheelSpin() },
+                            enabled = buttonEnabled,
+                            onClick = {
+                                buttonEnabled = false
+                                clickCount++
+                                onWheelSpin()
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(
                                     all = 16.dp,
                                 ),
                         ) {
+
                             Text(
-                                text = "얍!",
-                                modifier = Modifier.padding(all = 16.dp),
-                                style = MaterialTheme.typography.headlineLarge.copy(
+                                text = if (buttonEnabled) "얍!" else "두근두근..",
+                                modifier = Modifier.padding(all = 8.dp),
+                                style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                 ),
                             )
